@@ -22,7 +22,8 @@ console.log('Starting up...');
 
 app.use(express.static('public')); // 'public' is the directory that contains your .ics file
 
-const DAYS = 2
+const DAYS = 1
+const LOG = true
 // fetch events from ics file for the next 7 days
 const fetchEvents = () => {
     // use the sync function parseFile() to parse this ics file
@@ -39,21 +40,23 @@ const fetchEvents = () => {
     });
 
 
-    // loop through events and log them
-    for (const event of Object.values(events)) {
-        if (event.type !== 'VEVENT') {
-            // ignore anything that is not a VEVENT (like VTODO, VJOURNAL, etc.)
-            continue;
-        }
-        console.log(
-            'Summary: ' + event.summary +
-            '\nDescription: ' + event.description +
-            '\nStart Date: ' + event.start.toISOString() +
-            '\nEnd Date: ' + event.end.toISOString() +
-            '\nRepeats: ' + event.rrule +
-            '\n'
-        );
-    };
+    if(LOG) {
+        // loop through events and log them
+        for (const event of Object.values(events)) {
+            if (event.type !== 'VEVENT') {
+                // ignore anything that is not a VEVENT (like VTODO, VJOURNAL, etc.)
+                continue;
+            }
+            console.log(
+                'Summary: ' + event.summary +
+                '\nDescription: ' + event.description +
+                '\nStart Date: ' + event.start.toISOString() +
+                '\nEnd Date: ' + event.end.toISOString() +
+                '\nRepeats: ' + event.rrule +
+                '\n'
+            );
+        };
+    }
 
     return eventsInNextWeek;
 };
@@ -80,9 +83,14 @@ const scheduleText = (event) => {
     }
 };
 
+const cancelScheduledText = (txtId) => {
+    client.messages(txtId)
+      .update({status: 'canceled'})
+      .then(message => console.log(message.to));
+};
+
 const scheduleTwilioStyle = (event) => {
     console.log('Scheduling text...');
-    console.log(event);
     const eventStartDate = new Date(event.start);
     client.messages.create({
         body: `Event: ${event.summary}\nDescription: ${event.description || ''}`,
@@ -98,48 +106,8 @@ const scheduleTwilioStyle = (event) => {
 };
 
 for (const event of fetchEvents()) {
-    console.log(event)
     scheduleTwilioStyle(event);
 }
 
 
-
-
-
-
-// app.listen(port, () => {
-//   console.log(`Server is running at http://localhost:${port}`);
-// });
-
-// const fetchCalendar = () => {
-//     console.log('Fetching calendar...');
-//     ical.fromURL(url, {}, function(err, data) {
-//     if (err) console.log(err);
-
-//     for (let k in data) {
-//         if (data.hasOwnProperty(k)) {
-//         var ev = data[k];
-//         if (data[k].type === 'VEVENT') {
-//             const eventStartDate = new Date(ev.start);
-//             const now = new Date();
-//             if (eventStartDate > now) {
-//             let job = schedule.scheduleJob(eventStartDate, function() {
-//                 client.messages.create({
-//                 body: `Event: ${ev.summary}\nDescription: ${ev.description || ''}`,
-//                 from: twilioPhoneNumber,
-//                 to: phoneNumber
-//                 }).then(message => console.log(message.sid)).done();
-//             });
-//             }
-//         }
-//         }
-//     }
-//     });
-// };
-
-// // endpoint to fetch calendar
-// app.get('/fetchCalendar', (req, res) => {
-//     fetchCalendar();
-//     res.send('Calendar fetched!');
-// })
 
